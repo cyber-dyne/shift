@@ -19,11 +19,11 @@ __imports()
         local repo_dir="$1"
         local repo_as="$2"
 
-        grep -REl '\b(from|import)\s+\.' "$repo_dir" | while IFS= read -r lib; do
-                ed -s "$lib" <<EOF >/dev/null || true
+        grep -REl '\b(from|import)\s+\.' "$repo_dir/lib" | while IFS= read -r lib; do
+                ed -s "$lib" <<EOF >"${lib}o"
 %g/from *\./s//from $repo_as/g
 %g/import *\./s//import $repo_as/g
-wq
+%p
 EOF
         done
 }
@@ -75,11 +75,18 @@ import()
         IFS=:
         for dir in $ShiftPath; do
                 local file="$dir/$pkg/lib/$lib.sh"
-                if test -e "$file"; then
-                        . "$file"
-                        IFS="$ifs"
-                        return
+
+                if ! test -e "$file"; then
+                        continue
                 fi
+
+                if test -e "${file}o"; then
+                        file="${file}o"
+                fi
+
+                . "$file"
+                IFS="$ifs"
+                return
         done
         IFS="$ifs"
 
