@@ -50,6 +50,9 @@ require()
         local repo_dir="$ShiftHomeDir/$repo_as"
 
         if test -e "$repo_dir"; then
+                ## We need to search and convert relative imports every time
+                ## to make them compatible with git submodules.
+                __imports "$repo_dir" "$repo_as"
                 return
         fi
 
