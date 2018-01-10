@@ -21,11 +21,8 @@ __imports()
 
         grep -REl '\b(from|import)\s+\.' "$repo_dir" | while IFS= read -r lib; do
                 ed -s "$lib" <<EOF >/dev/null || true
-%s/from *\./from $repo_as/g
-wq
-EOF
-                ed -s "$lib" <<EOF >/dev/null || true
-%s/import *\./import $repo_as/g
+%g/from *\./s//from $repo_as/g
+%g/import *\./s//import $repo_as/g
 wq
 EOF
         done

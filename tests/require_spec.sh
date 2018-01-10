@@ -10,10 +10,14 @@ it_should_require_one_package()
 
         test -e "$tmp_dir/$pkg_name/.git"
         test -e "$tmp_dir/$pkg_name/lib/a.sh"
-        grep -q "^from $pkg_name import" "$tmp_dir/$pkg_name/lib/all.sh"
-        ! grep -q "^from *\. import" "$tmp_dir/$pkg_name/lib/all.sh"
         grep -q "^import $pkg_name" "$tmp_dir/$pkg_name/lib/all.sh"
         ! grep -q "^import *\." "$tmp_dir/$pkg_name/lib/all.sh"
+        grep -q "^from $pkg_name import" "$tmp_dir/$pkg_name/lib/all.sh"
+        ! grep -q "^from *\. import" "$tmp_dir/$pkg_name/lib/all.sh"
+        grep -q "^import $pkg_name" "$tmp_dir/$pkg_name/lib/import.sh"
+        ! grep -q "^import *\." "$tmp_dir/$pkg_name/lib/import.sh"
+        grep -q "^from $pkg_name import" "$tmp_dir/$pkg_name/lib/import_from.sh"
+        ! grep -q "^from *\. import" "$tmp_dir/$pkg_name/lib/import_from.sh"
 }
 
 it_should_require_one_package_with_a_name()
