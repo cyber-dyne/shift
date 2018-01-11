@@ -1,6 +1,6 @@
 : ${TMPDIR:=/tmp}
 
-it_should_have_default_variables()
+it_should_have_default_values()
 {
         set -- "$__file__"
 
@@ -15,7 +15,7 @@ it_should_have_default_variables()
         test "$ShiftPath"    = "$ShiftHomeDir:$HOME/.shell.d"
 }
 
-it_should_override_variables()
+it_should_support_custom_values()
 {
         set -- "$__file__"
 

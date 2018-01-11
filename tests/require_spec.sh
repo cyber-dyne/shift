@@ -2,12 +2,6 @@
 
 it_should_require_one_package()
 {
-        set -- "$__file__"
-
-        . "$__dir__/../lib/shift.sh"
-
-        require "$pkg_repo"
-
         test -e "$tmp_dir/$pkg_name/.git"
         test -e "$tmp_dir/$pkg_name/lib/a.sh"
         test -e "$tmp_dir/$pkg_name/lib/all.sho"
@@ -23,10 +17,6 @@ it_should_require_one_package()
 
 it_should_require_one_package_with_a_name()
 {
-        set -- "$__file__"
-
-        . "$__dir__/../lib/shift.sh"
-
         require "$pkg_repo" -as $pkg_name.v1
 
         test -e "$tmp_dir/$pkg_name.v1/.git"
@@ -38,9 +28,7 @@ it_should_require_one_package_with_a_name()
 
 it_should_require_one_package_with_a_branch_and_rev()
 {
-        set -- "$__file__"
-
-        . "$__dir__/../lib/shift.sh"
+        rm -rf "$tmp_dir/$pkg_name"
 
         require "$pkg_repo" -branch master -rev HEAD~1
 

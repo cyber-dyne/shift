@@ -14,20 +14,7 @@ if ! printf -- "$ShiftPath" | grep -Eq "(^|:)$ShiftHomeDir(:|$)"; then
         ShiftPath="$ShiftHomeDir${ShiftPath:+:$ShiftPath}"
 fi
 
-__imports()
-{
-        local repo_dir="$1"
-        local repo_as="$2"
-
-        grep -REl '\b(from|import)\s+\.' "$repo_dir/lib" | while IFS= read -r lib; do
-                ed -s "$lib" <<EOF >"${lib}o"
-%g/from *\./s//from $repo_as/g
-%g/import *\./s//import $repo_as/g
-%p
-EOF
-        done
-}
-
+## Public API.
 ## Example:
 ## require https://$url/$package.shell.git
 ## require https://$url/$package.shell.git -branch $branch -rev $rev -as $name
@@ -52,7 +39,7 @@ require()
         if test -e "$repo_dir"; then
                 ## We need to search and convert relative imports every time
                 ## to make them compatible with git submodules.
-                __imports "$repo_dir" "$repo_as"
+                shift_fix_imports "$repo_dir" "$repo_as"
                 return
         fi
 
@@ -61,9 +48,10 @@ require()
         git clone --quiet -b "$repo_branch" "$repo_url" "$repo_dir"
         git --git-dir "$repo_dir/.git" --work-tree "$repo_dir" checkout --quiet "$repo_rev"
 
-        __imports "$repo_dir" "$repo_as"
+        shift_fix_imports "$repo_dir" "$repo_as"
 }
 
+## Public API.
 ## Example:
 ## import $pkg/$lib
 import()
@@ -94,6 +82,7 @@ import()
         return 1
 }
 
+## Public API.
 ## Example:
 ## from $pkg import $lib
 ## from $pkg import $lib1 $lib2
@@ -105,5 +94,37 @@ from()
 
         for lib; do
                 import "$pkg/$lib"
+        done
+}
+
+## Internal API.
+## Example:
+## shift_fix_imports "$repo_dir" "$repo_as"
+shift_fix_imports()
+{
+        local repo_dir="$1"
+        local repo_as="$2"
+
+        grep -R -l --exclude '*.sho' -E '\b(from|import)\s+\.' "$repo_dir/lib" \
+        | while IFS= read -r lib; do
+                if test -e "${lib}o"; then
+                        local lib_mtime=$(stat -f '%m' "$lib")
+                        local obj_mtime=$(stat -f '%m' "${lib}o")
+
+                        if test $lib_mtime -le $obj_mtime; then
+                                ## In case the converted library exists and has
+                                ## a modification time newer than the original
+                                ## one we have nothing to do and we can skip
+                                ## the conversion.
+                                continue
+                        fi
+                fi
+
+                ## ed is faster than using cat+sed.
+                ed -s "$lib" <<EOF >"${lib}o"
+%g/from *\./s//from $repo_as/g
+%g/import *\./s//import $repo_as/g
+%p
+EOF
         done
 }
