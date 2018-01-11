@@ -1,3 +1,5 @@
+## This wrapper can be embedded in a project not using git submodules to easly
+## acquire Shift at runtime.
 set -eu
 
 cmd_name=shift

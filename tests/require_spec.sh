@@ -35,3 +35,13 @@ it_should_require_one_package_with_a_branch_and_rev()
         test -e "$tmp_dir/$pkg_name/lib/a.sh"
         ! test -e "$tmp_dir/$pkg_name/lib/b.sh"
 }
+
+it_should_require_one_package_with_its_dependencies()
+{
+        rm -rf "$tmp_dir/$pkg_name"
+
+        require "$other_pkg_repo"
+
+        test -e "$tmp_dir/$other_pkg_name/Shfile.sh"
+        test -e "$tmp_dir/$pkg_name/lib/a.sh"
+}
