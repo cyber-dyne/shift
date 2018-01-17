@@ -97,6 +97,15 @@ from()
 }
 
 ## Internal API.
+shift_get_mtime()
+{
+        case "$(uname -s)" in
+                Linux)  stat -c '%Y' "$@";;
+                Darwin) stat -f '%m' "$@";;
+        esac
+}
+
+## Internal API.
 ## Example:
 ## shift_fix_imports "$repo_dir" "$repo_as"
 shift_fix_imports()
@@ -113,8 +122,8 @@ shift_fix_imports()
         grep -R -l --exclude '*.sho' -E '\b(from|import)\s+\.' "$repo_dir/lib" \
         | while IFS= read -r lib; do
                 if test -e "${lib}o"; then
-                        local lib_mtime=$(stat -f '%m' "$lib")
-                        local obj_mtime=$(stat -f '%m' "${lib}o")
+                        local lib_mtime=$(shift_get_mtime "$lib")
+                        local obj_mtime=$(shift_get_mtime "${lib}o")
 
                         if test $lib_mtime -le $obj_mtime; then
                                 ## In case the converted library exists and has
