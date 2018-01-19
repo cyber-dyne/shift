@@ -1,13 +1,17 @@
-: ${ShiftHomeDir:=${SHIFT_HOME_DIR:-$ZeroDir/shell.d}}
-: ${ShiftPath:=${SHIFT_PATH:-$HOME/.shell.d}}
+: ${ShiftHomeDir:=${SHIFT_HOME_DIR:-$ZeroDir/shift.d}}
+: ${ShiftPath:=${SHIFT_PATH:-$HOME/.shift.d}}
 
-export SHIFT_DIR
 export SHIFT_HOME_DIR
 export SHIFT_PATH
 
 if ! printf -- "$ShiftPath" | grep -Eq "(^|:)$ShiftHomeDir(:|$)"; then
         ShiftPath="$ShiftHomeDir${ShiftPath:+:$ShiftPath}"
 fi
+
+case "$(uname -s)" in
+        Linux)  ShiftOS=Linux;;
+        Darwin) ShiftOS=MacOS;;
+esac
 
 ## Public API.
 ## Example:
@@ -19,7 +23,7 @@ require()
         shift
         local repo_branch="master"
         local repo_rev="HEAD"
-        local repo_as="$(printf -- '%s' "$repo_url" | sed -e 's:^.*/::' -e 's:\.git$::' -e 's:.shell$::')"
+        local repo_as="$(printf -- '%s' "$repo_url" | sed -e 's:^.*/::' -e 's:\.git$::' -e 's:.sh$::')"
 
         while test $# -gt 0; do
                 case $1 in
@@ -31,17 +35,12 @@ require()
 
         local repo_dir="$ShiftHomeDir/$repo_as"
 
-        if test -e "$repo_dir"; then
-                ## We need to search and convert relative imports every time
-                ## to make them compatible with git submodules.
-                shift_fix_imports "$repo_dir" "$repo_as"
-                return
+        if test ! -e "$repo_dir"; then
+                mkdir -p "$ShiftHomeDir"
+
+                git clone --quiet -b "$repo_branch" "$repo_url" "$repo_dir"
+                git --git-dir "$repo_dir/.git" --work-tree "$repo_dir" checkout --quiet "$repo_rev"
         fi
-
-        mkdir -p "$ShiftHomeDir"
-
-        git clone --quiet -b "$repo_branch" "$repo_url" "$repo_dir"
-        git --git-dir "$repo_dir/.git" --work-tree "$repo_dir" checkout --quiet "$repo_rev"
 
         shift_fix_imports "$repo_dir" "$repo_as"
 
@@ -97,11 +96,13 @@ from()
 }
 
 ## Internal API.
-shift_get_mtime()
+## Example:
+## shift_get_lib_mtimes "$repo_dir
+shift_get_lib_mtimes()
 {
-        case "$(uname -s)" in
-                Linux)  stat -c '%Y' "$@";;
-                Darwin) stat -f '%m' "$@";;
+        case "$ShiftOS" in
+                Linux) find "$1/lib" -type d -print0 | xargs -0 stat -c '%Y';;
+                MacOS) find "$1/lib" -type d -print0 | xargs -0 stat -f '%m';;
         esac
 }
 
@@ -119,26 +120,29 @@ shift_fix_imports()
                 return
         fi
 
-        grep -R -l --exclude '*.sho' -E '\b(from|import)\s+\.' "$repo_dir/lib" \
-        | while IFS= read -r lib; do
-                if test -e "${lib}o"; then
-                        local lib_mtime=$(shift_get_mtime "$lib")
-                        local obj_mtime=$(shift_get_mtime "${lib}o")
+        local stats_file="$repo_dir/.lib.stats"
 
-                        if test $lib_mtime -le $obj_mtime; then
-                                ## In case the converted library exists and has
-                                ## a modification time newer than the original
-                                ## one we have nothing to do and we can skip
-                                ## the conversion.
-                                continue
-                        fi
+        if test -e "$stats_file"; then
+                local old_stats="$(cat "$stats_file")"
+                local new_stats="$(shift_get_lib_mtimes "$repo_dir")"
+
+                if test "$old_stats" = "$new_stats"; then
+                        return
                 fi
+        fi
+
+        find "$repo_dir/lib" -type f -iname "*.sh" \
+        | while IFS= read -r lib; do
+                local libo="${lib}o"
 
                 ## ed is faster than using cat+sed.
-                ed -s "$lib" <<EOF >"${lib}o"
+                cp -f "$lib" "$libo"
+                ed -s "$libo" <<EOF
 %g/from *\./s//from $repo_as/g
 %g/import *\./s//import $repo_as/g
-%p
+wq
 EOF
         done
+
+        shift_get_lib_mtimes "$repo_dir" > "$stats_file"
 }
