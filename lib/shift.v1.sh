@@ -1,11 +1,17 @@
 : ${ShiftHomeDir:=${SHIFT_HOME_DIR:-$ZeroDir/shift.d}}
 : ${ShiftPath:=${SHIFT_PATH:-$HOME/.shift.d}}
+: ${ShiftDebugFlag:=${SHIFT_DEBUG:-no}}
 
 export SHIFT_HOME_DIR
 export SHIFT_PATH
+export SHIFT_DEBUG
 
 if ! printf -- "$ShiftPath" | grep -Eq "(^|:)$ShiftHomeDir(:|$)"; then
         ShiftPath="$ShiftHomeDir${ShiftPath:+:$ShiftPath}"
+fi
+
+if test "$SHIFT_DEBUG" != 'no'; then
+        set -x ## xtrace
 fi
 
 case "$(uname -s)" in
