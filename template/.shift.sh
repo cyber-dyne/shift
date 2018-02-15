@@ -1,5 +1,5 @@
 ## This wrapper can be embedded in a project not using git submodules to easly
-## acquire Shift at runtime.
+## acquire a dependency at runtime.
 set -eu
 
 cmd_name=shift
@@ -11,7 +11,7 @@ repo_rev=$repo_branch
 repo_dir="$(cd "$(dirname "$0")" && pwd)/.$cmd_name"
 cmd_exec="$repo_dir/lib/$cmd_name.sh"
 
-if ! test -e "$repo_dir/.git"; then
+if ! test -e "$repo_dir"; then
         git clone --quiet -b "$repo_branch" "$repo_url" "$repo_dir"
         git --git-dir "$repo_dir/.git" --work-tree "$repo_dir" checkout --quiet "$repo_rev"
 fi
