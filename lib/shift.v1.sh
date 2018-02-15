@@ -10,7 +10,7 @@ if ! printf -- "$ShiftPath" | grep -Eq "(^|:)$ShiftHomeDir(:|$)"; then
         ShiftPath="$ShiftHomeDir${ShiftPath:+:$ShiftPath}"
 fi
 
-if test "$SHIFT_DEBUG" != 'no'; then
+if test "$ShiftDebugFlag" != 'no'; then
         set -x ## xtrace
 fi
 
