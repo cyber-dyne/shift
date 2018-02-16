@@ -22,20 +22,18 @@ esac
 ## Public API.
 ## Example:
 ## require https://$url/$package.shell.git
-## require https://$url/$package.shell.git -branch $branch -rev $rev -as $name
+## require https://$url/$package.shell.git -rev $rev -as $name
 require()
 {(
         local repo_url="$1"
         shift
-        local repo_branch="master"
         local repo_rev="HEAD"
         local repo_as="$(printf -- '%s' "$repo_url" | sed -e 's:^.*/::' -e 's:\.git$::' -e 's:.sh$::')"
 
         while test $# -gt 0; do
                 case $1 in
-                        -branch) repo_branch="$2"; shift; shift;;
-                        -rev)    repo_rev="$2";    shift; shift;;
-                        -as)     repo_as="$2";     shift; shift;;
+                        -rev) repo_rev="$2"; shift; shift;;
+                        -as)  repo_as="$2";  shift; shift;;
                 esac
         done
 
@@ -44,8 +42,21 @@ require()
         if test ! -e "$repo_dir"; then
                 mkdir -p "$ShiftHomeDir"
 
-                git clone --quiet -b "$repo_branch" "$repo_url" "$repo_dir"
-                git --git-dir "$repo_dir/.git" --work-tree "$repo_dir" checkout --quiet "$repo_rev"
+                git clone --quiet "$repo_url" "$repo_dir"
+                git -C "$repo_dir" checkout --quiet "HEAD^0"                    ## Detached.
+                for branch in $(git for-each-ref --format '%(refname:short)' refs/heads/); do
+                        git -C "$repo_dir" branch --quiet -d "$branch"
+                done
+        fi
+
+        local receipt_file="$repo_dir/receipt"
+        touch "$receipt_file"
+        local receipt_rev="$(cat "$receipt_file")"
+
+        if test "$repo_rev" != "$receipt_rev"; then
+                git -C "$repo_dir" fetch --quiet --all --prune
+                git -C "$repo_dir" checkout --quiet "$repo_rev^0"               ## Detached.
+                printf -- '%s' "$repo_rev" > "$receipt_file"
         fi
 
         shift_fix_imports "$repo_dir" "$repo_as"
@@ -126,7 +137,7 @@ shift_fix_imports()
                 return
         fi
 
-        local stats_file="$repo_dir/.lib.stats"
+        local stats_file="$repo_dir/lib.stats"
 
         if test -e "$stats_file"; then
                 local old_stats="$(cat "$stats_file")"
@@ -143,7 +154,7 @@ shift_fix_imports()
 
                 ## ed is faster than using cat+sed.
                 cp -f "$lib" "$libo"
-                ed -s "$libo" <<EOF
+                ed -s "$libo" <<EOF 1>/dev/null 2>&1 || true
 %g/from *\./s//from $repo_as/g
 %g/import *\./s//import $repo_as/g
 wq

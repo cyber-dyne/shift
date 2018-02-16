@@ -15,8 +15,10 @@ before_all_for_pkg()
                 git -C "$pkg_repo" init --quiet
                 git -C "$pkg_repo" add -A lib/a.sh
                 git -C "$pkg_repo" commit --quiet -m '' --allow-empty-message
+                git -C "$pkg_repo" tag 1.0
                 git -C "$pkg_repo" add -A .
                 git -C "$pkg_repo" commit --quiet -m '' --allow-empty-message
+                git -C "$pkg_repo" tag 1.1
         fi
 
         if ! test -e "$other_pkg_repo/.git"; then
@@ -46,7 +48,7 @@ after_for_pkg()
 
 after_all_for_pkg()
 {
-        # rm -rf "$pkg_repo/.git"
-        # rm -rf "$other_pkg_repo/.git"
+        rm -rf "$pkg_repo/.git"
+        rm -rf "$other_pkg_repo/.git"
         rm -f "$other_pkg_repo/Shfile.sh"
 }
