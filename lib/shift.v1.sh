@@ -44,7 +44,7 @@ require()
 
                 git clone --quiet "$repo_url" "$repo_dir"
                 git -C "$repo_dir" checkout --quiet "HEAD^0"                    ## Detached.
-                for branch in $(git for-each-ref --format '%(refname:short)' refs/heads/); do
+                for branch in $(git -C "$repo_dir" for-each-ref --format '%(refname:short)' refs/heads/); do
                         git -C "$repo_dir" branch --quiet -d "$branch"
                 done
         fi
